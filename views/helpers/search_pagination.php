@@ -2,10 +2,11 @@
 /**
  * SearchPagination helper
  *
- * This helper will be automatically loaded by the SearchPaginationComponent.
+ * You don't have to load this helper in your controllers by hand,
+ * since the SearchPaginationComponent will do if necessary.
  *
  * @author Takayuki Miwa <i@tkyk.name>
- * @package SearchPaginationComponent
+ * @package SearchPagination
  * @license http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 class SearchPaginationHelper extends AppHelper {
@@ -37,6 +38,8 @@ class SearchPaginationHelper extends AppHelper {
      * Passes the search parameters to PaginatorHelper.
      */
     public function beforeRender() {
-        $this->Paginator->options(array('url' => array('?' => $this->_searchParams)));
+        if(!empty($this->_searchParams)) {
+            $this->Paginator->options(array('url' => array('?' => $this->_searchParams)));
+        }
     }
 }
