@@ -3,15 +3,19 @@
  * SearchPagination component
  * 
  * Usage:
+ * <code>
+ *   var $uses = array('ModelName');
  *   var $components = array('SearchPagination.SearchPagination');
  * 
  *   function actionMethod() {
- *     $this->SearchPagination->setup('ModelName');
- *     $this->paginate = $this->ModelName->buildQuery();
+ *     $data = $this->SearchPagination->setup('ModelName');
+ *     $this->paginate['conditions'] = $this->ModelName->parseCriteria($data);
+ *     $this->set('models', $this->paginate());
  *   }
+ * </code>
  * 
  * @author Takayuki Miwa <i@tkyk.name>
- * @package SearchPaginationPlugin
+ * @package SearchPagination
  * @license http://www.opensource.org/licenses/mit-license.php The MIT License
  */
 class SearchPaginationComponent extends Object {
@@ -24,73 +28,96 @@ class SearchPaginationComponent extends Object {
     /**
      * @var string  helper name
      */
-    protected $_helperName = 'SearchPagination.SearchPagination';
+    public $helperName = 'SearchPagination.SearchPagination';
 
     /**
      * initialize callback.
+     * 
+     * @param object  Controller
+     * @param array   options
      */
-    public function initialize($controller, $setting=array()) {
+    public function initialize($controller, $options=array()) {
         $this->_controller = $controller;
     }
 
     /**
-     * Loads and initializes the $searchModel.
      * This method should be called in action methods.
      *
      * @param string  $searchModel
      * @param array   $default     default search parameters
-     * @param boolean $useModel    if false, does not load $searchModel
      * @return array
      */
-    public function setup($searchModel, $default=array(), $useModel=true) {
-        $ctrl = $this->_controller;
-
-        $post = $ctrl->data;
-        $get  = $this->__getDataFromURL($searchModel);
-        $data = empty($post) ? array($searchModel => empty($get) ? $default : $get) : $post;
-
-        if($useModel) {
-            $ctrl->loadModel($searchModel);
-            $model = $this->_controller->{$searchModel};
-            $model->set($data);
-            $ctrl->data = $model->data;
-        } else {
-            $ctrl->data = $data;
+    public function setup($searchModel=null, $default=array()) {
+        if(empty($searchModel)) {
+            $searchModel = $this->_controller->modelClass;
         }
-
-        if(isset($ctrl->data[$searchModel]) && is_array($ctrl->data[$searchModel])) {
-            $this->__setupHelper($ctrl->data[$searchModel]);
+        if($this->prg($searchModel)) {
+            $this->unifyData($searchModel, $default);
+            $this->setupHelper($this->__extractGetParams());
+            return $this->_controller->data[$searchModel];
         }
-        return $ctrl->data;
     }
 
     /**
-     * Extracts search parameter array from params['url'].
+     * Post-Redirect-Get pattern
      * 
-     * @param string $searchModel
-     * @return array
+     * @param string  model name
+     * @return boolean  true if no need to redirect
      */
-    private function __getDataFromURL($searchModel) {
-        $get = $this->_controller->params['url'];
-        unset($get['url']);
-        return $get;
+    public function prg($modelName) {
+        if(empty($this->_controller->data)) {
+            return true;
+        }
+        $url = empty($this->_controller->data[$modelName]) ?
+            array() :
+            array('?' => $this->_controller->data[$modelName]);
+        $this->_controller->redirect($url);
+        return false;
     }
 
     /**
-     * Adds SearchPagination.SearchPaginationHelper to the controller::$helpers
-     * and passes the search parameters as its options.
+     * Extracts search parameters from params['url']
+     * and stores them into Controller->data.
      * 
-     * @param    array $opts
+     * @param string  model name
+     * @param array   default parameters
      */
-    private function __setupHelper($opts) {
+    public function unifyData($modelName, $default=array()) {
+        $params = $this->__extractGetParams();
+        $this->_controller->data[$modelName]
+            = empty($params) ? $default : $params;
+    }
+
+    /**
+     * Extracts search parameters from params['url'] and returns them.
+     * 
+     * @return array
+     */
+    private function __extractGetParams() {
+        $params = $this->_controller->params['url'];
+        if(isset($params['url'])) {
+            unset($params['url']);
+        }
+        return $params;
+    }
+
+    /**
+     * Adds SearchPagination.SearchPaginationHelper to the Controller->$helpers
+     * passing the search parameters to its options.
+     * 
+     * @param array  search parameters
+     */
+    public function setupHelper($params) {
         $ctrl = $this->_controller;
-        if (in_array($this->_helperName, $ctrl->helpers)) {
-            unset($ctrl->helpers[array_search($this->_helperName, $ctrl->helpers)]);
+        $helperName = $this->helperName;
+
+        if (in_array($helperName, $ctrl->helpers)) {
+            unset($ctrl->helpers[array_search($helperName, $ctrl->helpers)]);
         }
-        if(!array_key_exists($this->_helperName, $ctrl->helpers)) {
-            $ctrl->helpers[$this->_helperName] = array();
+        if(!array_key_exists($helperName, $ctrl->helpers)) {
+            $ctrl->helpers[$helperName] = array();
         }
-        $ctrl->helpers[$this->_helperName]['__search_params'] = $opts;
+        $ctrl->helpers[$helperName]['__search_params'] = $params;
     }
 
 }
