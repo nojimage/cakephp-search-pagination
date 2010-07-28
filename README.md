@@ -20,6 +20,13 @@ Requirements
 * CakePHP 1.3
 
 
+Installation
+------------------------------
+
+    cd plugins/
+    git clone http://github.com/tkyk/cakephp-search-pagination search_pagination
+
+
 Usage
 ------------------------------
 
