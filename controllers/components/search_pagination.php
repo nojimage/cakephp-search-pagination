@@ -98,6 +98,9 @@ class SearchPaginationComponent extends Object {
         if(isset($params['url'])) {
             unset($params['url']);
         }
+        if(isset($params['ext'])) {
+            unset($params['ext']);
+        }
         return $params;
     }
 

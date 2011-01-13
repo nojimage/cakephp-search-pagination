@@ -158,6 +158,27 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
                                $this->c->helpers[$this->s->helperName]);
     }
 
+    function testSetup_Get_NoParams_When_Router_ParseExtensions() {
+        $model = 'Article';
+        $params = array();
+        $default = array('foo' => 'bar');
+
+        // set 'ext' parameter
+        App::import('Lib', 'Router');
+        Router::parseExtensions();
+        $this->c->params = Router::parse('/articles/index');
+
+        $this->_setGetParams($params);
+
+        $data = $this->s->setup($model, $default);
+        $this->assertIdentical($default, $data);
+        $this->assertIdentical($default, $this->c->data[$model]);
+
+        // default parameters are not succeeded!
+        $this->assertIdentical(array('__search_params' => array()),
+                               $this->c->helpers[$this->s->helperName]);
+    }
+
     function testSetup_Get_someParams() {
         $model = 'Article';
         $params = array('baz' => array(1,2,3),
