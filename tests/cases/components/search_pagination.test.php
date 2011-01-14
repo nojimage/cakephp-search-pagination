@@ -1,6 +1,7 @@
 <?php
 
 App::import('Component', 'SearchPagination.SearchPagination');
+App::import('Lib', 'Router');
 
 class TestControllerForSearchPaginationComponentTestCase
 extends Controller {
@@ -17,9 +18,23 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
     var $s;
     var $c;
     var $url = '/search/pagination';
+    var $_escapedGet;
 
-    function startTest() {
+    function startTest($method) {
+        Router::reload();
         $this->c = new TestControllerForSearchPaginationComponentTestCase();
+
+        // set 'ext' parameter
+        if(preg_match('/parseExtensions/i', $method)) {
+            Router::parseExtensions();
+        }
+
+        $this->c->params = Router::parse($this->url);
+
+        // always set 'url' parameter
+        if(!isset($this->c->params['url'])) {
+            $this->c->params['url'] = array();
+        }
         $this->c->params['url']['url'] = $this->url;
 
         $this->s = new SearchPaginationComponent();
@@ -159,24 +174,7 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
     }
 
     function testSetup_Get_NoParams_When_Router_ParseExtensions() {
-        $model = 'Article';
-        $params = array();
-        $default = array('foo' => 'bar');
-
-        // set 'ext' parameter
-        App::import('Lib', 'Router');
-        Router::parseExtensions();
-        $this->c->params = Router::parse('/articles/index');
-
-        $this->_setGetParams($params);
-
-        $data = $this->s->setup($model, $default);
-        $this->assertIdentical($default, $data);
-        $this->assertIdentical($default, $this->c->data[$model]);
-
-        // default parameters are not succeeded!
-        $this->assertIdentical(array('__search_params' => array()),
-                               $this->c->helpers[$this->s->helperName]);
+        $this->testSetup_Get_NoParams();
     }
 
     function testSetup_Get_someParams() {
@@ -194,6 +192,10 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
         // data are succeeded from Controller->params, not ->data.
         $this->assertIdentical(array('__search_params' => $params),
                                $this->c->helpers[$this->s->helperName]);
+    }
+
+    function testSetup_Get_someParams_When_Router_ParseExtensions() {
+        $this->testSetup_Get_someParams();
     }
 
     function testSetup_Post_someParams() {
