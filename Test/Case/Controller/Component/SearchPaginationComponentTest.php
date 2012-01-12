@@ -1,9 +1,19 @@
 <?php
 
-App::import('Component', 'SearchPagination.SearchPagination');
-App::import('Lib', 'Router');
+App::uses('SearchPaginationComponent', 'SearchPagination.Controller/Component');
+App::uses('Controller', 'Controller');
+App::uses('Router', 'Routing');
 
+/**
+ * @property SearchPaginationComponent $SearchPagination
+ */
 class TestControllerForSearchPaginationComponentTestCase extends Controller {
+
+	public $uses = array();
+
+	public $components = array(
+		'SearchPagination.SearchPagination',
+	);
 
 	public $redirected = false;
 
@@ -16,39 +26,32 @@ class TestControllerForSearchPaginationComponentTestCase extends Controller {
 
 }
 
-class SearchPaginationComponentTestCase extends CakeTestCase {
-
-	public $s;
-
-	public $c;
+/**
+ * @property TestControllerForSearchPaginationComponentTestCase $c
+ */
+class SearchPaginationComponentTest extends CakeTestCase {
 
 	public $url = '/search/pagination';
 
 	protected $_escapedGet;
 
-	public function startTest($method) {
-		Router::reload();
+	public function setUp() {
+		parent::setUp();
 		$this->c = new TestControllerForSearchPaginationComponentTestCase();
-
+		$this->c->constructClasses();
 		// set 'ext' parameter
-		if (preg_match('/parseExtensions/i', $method)) {
+		if (preg_match('/parseExtensions/i', $this->getName())) {
 			Router::parseExtensions();
 		}
-
-		$this->c->params = Router::parse($this->url);
-
-		// always set 'url' parameter
-		if (!isset($this->c->params['url'])) {
-			$this->c->params['url'] = array();
-		}
-		$this->c->params['url']['url'] = $this->url;
-
-		$this->s = new SearchPaginationComponent();
-		$this->s->initialize($this->c);
+		Router::connect('/:controller/:action/*');
+		$this->c->request->params = Router::parse($this->url);
+		$this->c->request->url = $this->url;
+		$this->c->request->query = array();
 	}
 
-	public function endTest() {
-		ClassRegistry::flush();
+	public function tearDown() {
+		unset($this->controller);
+		parent::tearDown();
 	}
 
 	public function assertNotRedirected() {
@@ -56,27 +59,22 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 	}
 
 	protected function _setGetParams($arr) {
-		$this->c->params['url'] = am($this->c->params['url'], $arr);
-	}
-
-	public function testInitialize() {
-		//
+		$this->c->request->query = am($this->c->request->query, $arr);
 	}
 
 	public function testPrg_empty() {
 		$model = 'Article';
-		$this->assertTrue(empty($this->c->data));
-		$this->assertTrue($this->s->prg($model));
+		$this->assertTrue(empty($this->c->request->data));
+		$this->assertTrue($this->c->SearchPagination->prg($model));
 		$this->assertNotRedirected();
 	}
 
 	public function testPrg_emptyParams() {
 		$model = 'Article';
 		$params = array();
-		$this->c->data[$model] = $params;
-
-		$this->assertFalse(empty($this->c->data));
-		$this->assertFalse($this->s->prg($model));
+		$this->c->request->data[$model] = $params;
+		$this->assertFalse(empty($this->c->request->data));
+		$this->assertFalse($this->c->SearchPagination->prg($model));
 		$this->assertIdentical(array(), $this->c->redirectUrl);
 	}
 
@@ -84,10 +82,10 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 		$model = 'Article';
 		$params = array('foo' => 'bar',
 			'baz' => array(1, 2, 3, 'zoo'));
-		$this->c->data[$model] = $params;
+		$this->c->request->data[$model] = $params;
 
-		$this->assertFalse(empty($this->c->data));
-		$this->assertFalse($this->s->prg($model));
+		$this->assertFalse(empty($this->c->request->data));
+		$this->assertFalse($this->c->SearchPagination->prg($model));
 		$this->assertIdentical(array('?' => $params), $this->c->redirectUrl);
 	}
 
@@ -95,20 +93,20 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 		$model = 'Article';
 		$params = array('foo' => 'bar',
 			'baz' => array(1, 2, 3, 'zoo'));
-		$this->c->data[$model] = $params;
-		$this->c->data['Another' . $model] = array('not', 'appear');
+		$this->c->request->data[$model] = $params;
+		$this->c->request->data['Another' . $model] = array('not', 'appear');
 
-		$this->assertFalse(empty($this->c->data));
-		$this->assertFalse($this->s->prg($model));
+		$this->assertFalse(empty($this->c->request->data));
+		$this->assertFalse($this->c->SearchPagination->prg($model));
 		$this->assertIdentical(array('?' => $params), $this->c->redirectUrl);
 	}
 
 	public function testPrg_someParams_modelMismatch() {
 		$model = 'Article';
-		$this->c->data['Another' . $model] = array('not', 'appear');
+		$this->c->request->data['Another' . $model] = array('not', 'appear');
 
-		$this->assertFalse(empty($this->c->data));
-		$this->assertFalse($this->s->prg($model));
+		$this->assertFalse(empty($this->c->request->data));
+		$this->assertFalse($this->c->SearchPagination->prg($model));
 		$this->assertIdentical(array(), $this->c->redirectUrl);
 	}
 
@@ -119,15 +117,15 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 
 		$this->_setGetParams($params);
 
-		$this->s->unifyData($model);
-		$this->assertIdentical($params, $this->c->data[$model]);
+		$this->c->SearchPagination->unifyData($model);
+		$this->assertIdentical($params, $this->c->request->data[$model]);
 	}
 
 	public function testUnifyData_default() {
 		$model = 'Article';
 
-		$this->s->unifyData($model);
-		$this->assertIdentical(array(), $this->c->data[$model]);
+		$this->c->SearchPagination->unifyData($model);
+		$this->assertIdentical(array(), $this->c->request->data[$model]);
 	}
 
 	public function testUnifyData_setDefault() {
@@ -135,8 +133,8 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 		$default = array('foo' => 'bar',
 			'baz' => array(1, 2, 3));
 
-		$this->s->unifyData($model, $default);
-		$this->assertIdentical($default, $this->c->data[$model]);
+		$this->c->SearchPagination->unifyData($model, $default);
+		$this->assertIdentical($default, $this->c->request->data[$model]);
 	}
 
 	public function testSetupHelper() {
@@ -144,16 +142,16 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 			'baz' => array(1, 2, 3));
 
 		$beforeCount = count($this->c->helpers);
-		$this->s->setupHelper($params);
-		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->s->helperName]);
+		$this->c->SearchPagination->setupHelper($params);
+		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->c->SearchPagination->settings['helperName']]);
 		$afterCount = count($this->c->helpers);
 		$this->assertEqual($beforeCount + 1, $afterCount);
 
-		$this->c->helpers = array('Html', $this->s->helperName, 'Form');
+		$this->c->helpers = array('Html', $this->c->SearchPagination->settings['helperName'], 'Form');
 		$beforeCount = count($this->c->helpers);
-		$this->s->setupHelper($params);
-		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->s->helperName]);
-		$this->assertFalse(in_array($this->s->helperName, $this->c->helpers));
+		$this->c->SearchPagination->setupHelper($params);
+		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->c->SearchPagination->settings['helperName']]);
+		$this->assertFalse(in_array($this->c->SearchPagination->settings['helperName'], $this->c->helpers));
 		$afterCount = count($this->c->helpers);
 		$this->assertEqual($beforeCount, $afterCount);
 	}
@@ -165,12 +163,12 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 
 		$this->_setGetParams($params);
 
-		$data = $this->s->setup($model, $default);
+		$data = $this->c->SearchPagination->setup($model, $default);
 		$this->assertIdentical($default, $data);
-		$this->assertIdentical($default, $this->c->data[$model]);
+		$this->assertIdentical($default, $this->c->request->data[$model]);
 
 		// default parameters are not succeeded!
-		$this->assertIdentical(array('__search_params' => array()), $this->c->helpers[$this->s->helperName]);
+		$this->assertIdentical(array('__search_params' => array()), $this->c->helpers[$this->c->SearchPagination->settings['helperName']]);
 	}
 
 	public function testSetup_Get_NoParams_When_Router_ParseExtensions() {
@@ -185,12 +183,12 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 
 		$this->_setGetParams($params);
 
-		$data = $this->s->setup($model, $default);
+		$data = $this->c->SearchPagination->setup($model, $default);
 		$this->assertIdentical($params, $data);
-		$this->assertIdentical($params, $this->c->data[$model]);
+		$this->assertIdentical($params, $this->c->request->data[$model]);
 
 		// data are succeeded from Controller->params, not ->data.
-		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->s->helperName]);
+		$this->assertIdentical(array('__search_params' => $params), $this->c->helpers[$this->c->SearchPagination->settings['helperName']]);
 	}
 
 	public function testSetup_Get_someParams_When_Router_ParseExtensions() {
@@ -203,9 +201,9 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 			'title' => 'abc');
 		$default = array('foo' => 'bar');
 
-		$this->c->data[$model] = $params;
+		$this->c->request->data[$model] = $params;
 
-		$data = $this->s->setup($model, $default);
+		$data = $this->c->SearchPagination->setup($model, $default);
 		$this->assertIdentical(array('?' => $params), $this->c->redirectUrl);
 	}
 
@@ -215,9 +213,9 @@ class SearchPaginationComponentTestCase extends CakeTestCase {
 			'title' => 'abc');
 		$default = array('foo' => 'bar');
 
-		$this->c->data[$this->c->modelClass] = $params;
+		$this->c->request->data[$this->c->modelClass] = $params;
 
-		$data = $this->s->setup(null, $default);
+		$data = $this->c->SearchPagination->setup(null, $default);
 		$this->assertIdentical(array('?' => $params), $this->c->redirectUrl);
 	}
 

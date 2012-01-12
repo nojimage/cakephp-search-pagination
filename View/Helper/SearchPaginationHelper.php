@@ -25,11 +25,12 @@ class SearchPaginationHelper extends AppHelper {
 /**
  * Constructor
  * 
- * @param array  helper options
+ * @param array $settings helper options
  */
-	public function __construct($opts=array()) {
-		if (!empty($opts['__search_params'])) {
-			$this->_searchParams = $opts['__search_params'];
+	public function __construct(View $View, $settings=array()) {
+		parent::__construct($View, $settings);
+		if (!empty($settings['__search_params'])) {
+			$this->_searchParams = $settings['__search_params'];
 		}
 	}
 

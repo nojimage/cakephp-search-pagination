@@ -18,26 +18,30 @@
  * @package SearchPagination
  * @license http://www.opensource.org/licenses/mit-license.php The MIT License
  */
-class SearchPaginationComponent extends Object {
+App::uses('Component', 'Controller');
+
+class SearchPaginationComponent extends Component {
 
 /**
- * @var object  Controller
+ * @var Controller
  */
 	protected $_controller;
 
 /**
- * @var string  helper name
+ * @var array default options
  */
-	public $helperName = 'SearchPagination.SearchPagination';
+	protected $_defaults = array(
+		'helperName' => 'SearchPagination.SearchPagination'
+	);
 
 /**
- * initialize callback.
- * 
- * @param object  Controller
- * @param array   options
+ * Constructor
+ *
+ * @param object Controller object
  */
-	public function initialize($controller, $options=array()) {
-		$this->_controller = $controller;
+	public function __construct(ComponentCollection $collection, $settings) {
+		$this->_controller = $collection->getController();
+		$this->settings = Set::merge($this->_defaults, $settings);
 	}
 
 /**
@@ -54,7 +58,7 @@ class SearchPaginationComponent extends Object {
 		if ($this->prg($searchModel)) {
 			$this->unifyData($searchModel, $default);
 			$this->setupHelper($this->__extractGetParams());
-			return $this->_controller->data[$searchModel];
+			return $this->_controller->request->data[$searchModel];
 		}
 	}
 
@@ -65,12 +69,12 @@ class SearchPaginationComponent extends Object {
  * @return boolean  true if no need to redirect
  */
 	public function prg($modelName) {
-		if (empty($this->_controller->data)) {
+		if (empty($this->_controller->request->data)) {
 			return true;
 		}
-		$url = empty($this->_controller->data[$modelName]) ?
+		$url = empty($this->_controller->request->data[$modelName]) ?
 			array() :
-			array('?' => $this->_controller->data[$modelName]);
+			array('?' => $this->_controller->request->data[$modelName]);
 		$this->_controller->redirect($url);
 		return false;
 	}
@@ -84,7 +88,7 @@ class SearchPaginationComponent extends Object {
  */
 	public function unifyData($modelName, $default=array()) {
 		$params = $this->__extractGetParams();
-		$this->_controller->data[$modelName]
+		$this->_controller->request->data[$modelName]
 			= empty($params) ? $default : $params;
 	}
 
@@ -94,14 +98,7 @@ class SearchPaginationComponent extends Object {
  * @return array
  */
 	private function __extractGetParams() {
-		$params = $this->_controller->params['url'];
-		if (isset($params['url'])) {
-			unset($params['url']);
-		}
-		if (isset($params['ext'])) {
-			unset($params['ext']);
-		}
-		return $params;
+		return $this->_controller->request->query;
 	}
 
 /**
@@ -112,7 +109,7 @@ class SearchPaginationComponent extends Object {
  */
 	public function setupHelper($params) {
 		$ctrl = $this->_controller;
-		$helperName = $this->helperName;
+		$helperName = $this->settings['helperName'];
 
 		if (in_array($helperName, $ctrl->helpers)) {
 			unset($ctrl->helpers[array_search($helperName, $ctrl->helpers)]);
