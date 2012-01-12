@@ -5,39 +5,39 @@ App::import('Helper', 'SearchPagination.SearchPagination');
 
 Mock::generate('PaginatorHelper');
 
-class SearchPaginationHelperTestCase extends CakeTestCase
-{
-    var $h, $p;
+class SearchPaginationHelperTestCase extends CakeTestCase {
 
-    function startTest() {
-        $this->p = new MockPaginatorHelper();
-    }
+	public $h, $p;
 
-    function endTest() {
-        unset($this->h);
-        ClassRegistry::flush();
-    }
+	public function startTest() {
+		$this->p = new MockPaginatorHelper();
+	}
 
-    function _init($params) {
-        $this->h = new SearchPaginationHelper(array('__search_params' => $params));
-        $this->h->Paginator = $this->p;
-    }
+	public function endTest() {
+		unset($this->h);
+		ClassRegistry::flush();
+	}
 
-    function testBeforeRender() {
-        $params = array('foo' => 'bar',
-                        'baz' => array(1,2,3));
-        $this->_init($params);
+	protected function _init($params) {
+		$this->h = new SearchPaginationHelper(array('__search_params' => $params));
+		$this->h->Paginator = $this->p;
+	}
 
-        $this->p->expectOnce('options', a(array('url' => array('?' => $params))));
-        $this->h->beforeRender();
-    }
+	public function testBeforeRender() {
+		$params = array('foo' => 'bar',
+			'baz' => array(1, 2, 3));
+		$this->_init($params);
 
-    function testBeforeRender_empty() {
-        $params = array();
-        $this->_init($params);
+		$this->p->expectOnce('options', array(array('url' => array('?' => $params))));
+		$this->h->beforeRender();
+	}
 
-        $this->p->expectNever('options');
-        $this->h->beforeRender();
-    }
+	public function testBeforeRender_empty() {
+		$params = array();
+		$this->_init($params);
+
+		$this->p->expectNever('options');
+		$this->h->beforeRender();
+	}
 
 }
